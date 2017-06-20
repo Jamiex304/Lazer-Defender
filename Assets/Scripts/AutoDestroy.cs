@@ -2,7 +2,7 @@
 using System.Collections;
 
 public class AutoDestroy : MonoBehaviour {
-
+	//Destorys Player Missles once they go out of range
 	float ymax;	
 	// Use this for initialization
 	void Start () {

@@ -7,11 +7,56 @@ public class EnemySpawner : MonoBehaviour {
 	public float width;
 	public float height;
 	public float speed;
+	public float spawnDelay;
 	
 	private bool movingRight = true;
 	private float xmin;
 	private float xmax;
 
+	//Custom Methods
+	public void OnDrawGizmos(){
+		Gizmos.DrawWireCube(transform.position, new Vector3(width,height,0));
+	}
+	
+	bool AllMembersDead(){
+		foreach(Transform childPositionGameObject in transform){
+			if(childPositionGameObject.childCount > 0){
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	Transform NextFreePosition(){
+		foreach(Transform childPositionGameObject in transform){
+			if(childPositionGameObject.childCount == 0){
+				return childPositionGameObject;
+			}
+		}
+		return null;
+	}
+	
+	void SpawnEnemyFormation(){
+		//Spawn Enemy at Start
+		foreach(Transform child in transform){
+			GameObject enemy = Instantiate(enemyPrefab, child.transform.position, Quaternion.identity) as GameObject;
+			//Keep scene clean
+			enemy.transform.parent = child;
+		}
+	}
+	
+	void SpawnUntilFull(){
+		Transform freePosition = NextFreePosition();
+		if(freePosition){
+			GameObject enemy = Instantiate(enemyPrefab, freePosition.transform.position, Quaternion.identity) as GameObject;
+			//Keep scene clean
+			enemy.transform.parent = freePosition;
+		}
+		if(NextFreePosition()){
+			Invoke("SpawnUntilFull", spawnDelay);
+		}
+	}
+	
 	// Use this for initialization
 	void Start () {
 	//Getting the bounds of the screen
@@ -21,16 +66,9 @@ public class EnemySpawner : MonoBehaviour {
 		
 		xmin = leftMost.x;
 		xmax = RightMost.x;
-	//Spawn Enemy at Start
-		foreach(Transform child in transform){
-			GameObject enemy = Instantiate(enemyPrefab, child.transform.position, Quaternion.identity) as GameObject;
-			//Keep scene clean
-			enemy.transform.parent = child;
-		}
-	}
-	
-	public void OnDrawGizmos(){
-		Gizmos.DrawWireCube(transform.position, new Vector3(width,height,0));
+		
+		//Spawn Enemy Formation at Start
+		SpawnUntilFull();
 	}
 	
 	// Update is called once per frame
@@ -43,11 +81,14 @@ public class EnemySpawner : MonoBehaviour {
 		// Move back and fourth within the playspace
 		float rightEdgeofFormation = transform.position.x + (0.5f*width);
 		float leftEdgeofFormation = transform.position.x - (0.5f*width);
-		
-		if(leftEdgeofFormation < xmin){
-			movingRight = true;
-		}else if (rightEdgeofFormation > xmax){
-			movingRight = false;
+		if(leftEdgeofFormation < xmin || rightEdgeofFormation > xmax){
+			movingRight = !movingRight;
+		}
+		//Checking if all current enemies are destoryed
+		if(AllMembersDead()){
+			//Debug.Log("Formation Dead");
+			//Respawn Enemy Formation
+			SpawnUntilFull();
 		}
 	}
 }
